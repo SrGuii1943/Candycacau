@@ -37,6 +37,18 @@
     .animate-fade-in {
       animation: fade-in 0.3s ease-out forwards;
     }
+    
+    /* Efeito Squishy elástico interativo para os botões e abas */
+    .btn-squish {
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s;
+    }
+    .btn-squish:active {
+      transform: scale(0.85, 1.25) translateY(-4px);
+    }
+    .btn-squish:hover {
+      transform: scale(1.05);
+    }
+
     /* Estilização suave de scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
@@ -80,14 +92,14 @@
           gain.connect(ctx.destination);
           
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(150, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.15);
+          osc.frequency.setValueAtTime(140, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(750, ctx.currentTime + 0.12);
           
-          gain.gain.setValueAtTime(0.3, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.25, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.12);
           
           osc.start();
-          osc.stop(ctx.currentTime + 0.16);
+          osc.stop(ctx.currentTime + 0.13);
         } else if (type === 'sparkle') {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -95,14 +107,14 @@
           gain.connect(ctx.destination);
           
           osc.type = 'triangle';
-          osc.frequency.setValueAtTime(880, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.3);
+          osc.frequency.setValueAtTime(920, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1900, ctx.currentTime + 0.25);
           
-          gain.gain.setValueAtTime(0.15, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          gain.gain.setValueAtTime(0.12, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.25);
           
           osc.start();
-          osc.stop(ctx.currentTime + 0.31);
+          osc.stop(ctx.currentTime + 0.26);
         } else if (type === 'pop') {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
@@ -110,14 +122,14 @@
           gain.connect(ctx.destination);
           
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(300, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.2);
+          osc.frequency.setValueAtTime(280, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.18);
           
-          gain.gain.setValueAtTime(0.4, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+          gain.gain.setValueAtTime(0.35, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.18);
           
           osc.start();
-          osc.stop(ctx.currentTime + 0.21);
+          osc.stop(ctx.currentTime + 0.19);
         }
       } catch (e) {
         console.log("AudioContext bloqueado ou não suportado.");
@@ -166,7 +178,7 @@
       const messagesEndRef = useRef(null);
       const [isRecording, setIsRecording] = useState(false);
 
-      // --- EFEITO 1: Fundo 3D Imersivo em Loop Infinito (Three.js) ---
+      // --- EFEITO 1: Fundo 3D Imersivo em Loop Infinito e Paralaque Interativo com Cursor ---
       useEffect(() => {
         if (!window.THREE) return;
         const THREE = window.THREE;
@@ -272,19 +284,35 @@
           scene.add(mesh);
         }
 
+        // Rastrear movimentos do rato para mover a câmera suavemente (paralaxe imersivo)
+        let mouseX = 0, mouseY = 0;
+        const handleMouseMove = (event) => {
+          mouseX = (event.clientX - window.innerWidth / 2) * 0.02;
+          mouseY = (event.clientY - window.innerHeight / 2) * 0.02;
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+
         let clock = new THREE.Clock();
         const animate = () => {
           requestAnimationFrame(animate);
           const elapsedTime = clock.getElapsedTime();
 
+          // Glitter girando infinitamente sem soluçar
           starParticles.rotation.y = elapsedTime * 0.03;
           starParticles.rotation.x = elapsedTime * 0.01;
 
+          // Doces flutuando suavemente
           shapes.forEach(shape => {
             shape.rotation.x += shape.userData.rotX;
             shape.rotation.y += shape.userData.rotY;
+            // Loop de onda de flutuação pura sem início e fim marcantes (trigonométrico contínuo)
             shape.position.y = shape.userData.startY + Math.sin(elapsedTime * shape.userData.floatSpeed * 10) * 2;
           });
+
+          // Suavizar movimento de paralaxe da câmera rumo ao rato
+          camera.position.x += (mouseX - camera.position.x) * 0.05;
+          camera.position.y += (-mouseY - camera.position.y) * 0.05;
+          camera.lookAt(scene.position);
 
           renderer.render(scene, camera);
         };
@@ -300,6 +328,7 @@
 
         return () => {
           window.removeEventListener('resize', handleResize);
+          window.removeEventListener('mousemove', handleMouseMove);
           if (container.contains(renderer.domElement)) {
             container.removeChild(renderer.domElement);
           }
@@ -370,7 +399,7 @@
         return () => clearInterval(intervalEvent);
       }, [currentUser, randomEvent]);
 
-      // --- ACÇÕES (CONVERTIDAS TOTALMENTE EM PROMISES SEM ASYNC/AWAIT) ---
+      // --- ACÇÕES ---
       const showToast = (msg) => {
         setToastMessage(msg);
         setTimeout(() => setToastMessage(null), 4000);
@@ -476,6 +505,7 @@
           happiness: Math.min(100, (currentUser.happiness || 100) + 10)
         }).eq('id', currentUser.id).then((res) => {
           if (!res.error) {
+            setCurrentUser(prev => ({ ...prev, pink_coins: (prev.pink_coins || 0) + finalReward, happiness: Math.min(100, (prev.happiness || 100) + 10) }));
             showToast(`🎁 Parabéns! Abriste o Baú e ganhaste +${finalReward} PinkCoins!`);
             setRandomEvent(null);
           }
@@ -717,6 +747,7 @@
             playSquishSound('bubble');
             loadChatMessages(activeChat.id);
 
+            // CORREÇÃO: Atualizar PinkCoins locais instantaneamente ao enviar mensagens com sucesso!
             if (coinsEarned > 0) {
               setLastGainedAmount(coinsEarned);
               setGainingCoinsAnim(true);
@@ -728,7 +759,16 @@
               supabaseClient.from('profiles').update({
                 pink_coins: newCoins,
                 energy: Math.min(100, (currentUser.energy || 100) + energyGain)
-              }).eq('id', currentUser.id).then(() => {});
+              }).eq('id', currentUser.id).then((updRes) => {
+                if (!updRes.error) {
+                  // Sincroniza a interface e o saldo local do jogador em tempo real!
+                  setCurrentUser(prev => ({
+                    ...prev,
+                    pink_coins: newCoins,
+                    energy: Math.min(100, (prev.energy || 100) + energyGain)
+                  }));
+                }
+              });
             }
 
             if (randomEvent && randomEvent.type === 'task' && textToSend.includes(randomEvent.emojiNeeded)) {
@@ -736,10 +776,17 @@
               supabaseClient.from('profiles').update({
                 pink_coins: (currentUser.pink_coins || 0) + rewardBonus,
                 happiness: Math.min(100, (currentUser.happiness || 100) + 15)
-              }).eq('id', currentUser.id).then(() => {
-                setRandomEvent(null);
-                showToast("🎉 Concluíste a tarefa! + " + rewardBonus + " PinkCoins!");
-                playSquishSound('sparkle');
+              }).eq('id', currentUser.id).then((taskRes) => {
+                if (!taskRes.error) {
+                  setCurrentUser(prev => ({
+                    ...prev,
+                    pink_coins: (prev.pink_coins || 0) + rewardBonus,
+                    happiness: Math.min(100, (prev.happiness || 100) + 15)
+                  }));
+                  setRandomEvent(null);
+                  showToast("🎉 Concluíste a tarefa! + " + rewardBonus + " PinkCoins!");
+                  playSquishSound('sparkle');
+                }
               });
             }
           }
@@ -997,13 +1044,13 @@
 
                 <div className="flex bg-pink-100 rounded-full p-1 mb-6 border border-pink-200">
                   <button
-                    className={`flex-1 py-2 text-sm font-bold rounded-full transition-all ${authMode === 'login' ? 'bg-pink-400 text-white shadow-md' : 'text-pink-500'}`}
+                    className={`flex-1 py-2 text-sm font-bold rounded-full btn-squish ${authMode === 'login' ? 'bg-pink-400 text-white shadow-md' : 'text-pink-500'}`}
                     onClick={() => { playSquishSound('bubble'); setAuthMode('login'); }}
                   >
                     Entrar
                   </button>
                   <button
-                    className={`flex-1 py-2 text-sm font-bold rounded-full transition-all ${authMode === 'register' ? 'bg-pink-400 text-white shadow-md' : 'text-pink-500'}`}
+                    className={`flex-1 py-2 text-sm font-bold rounded-full btn-squish ${authMode === 'register' ? 'bg-pink-400 text-white shadow-md' : 'text-pink-500'}`}
                     onClick={() => { playSquishSound('bubble'); setAuthMode('register'); }}
                   >
                     Cadastrar
@@ -1048,7 +1095,7 @@
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-pink-400 hover:bg-pink-500 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md transition-all mt-4 border-b-4 border-pink-600 flex justify-center items-center gap-2 text-sm"
+                      className="w-full bg-pink-400 hover:bg-pink-500 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md btn-squish mt-4 border-b-4 border-pink-600 flex justify-center items-center gap-2 text-sm"
                     >
                       Entrar no Candy Clash 🍬
                     </button>
@@ -1080,7 +1127,7 @@
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-pink-400 hover:bg-pink-500 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md transition-all mt-4 border-b-4 border-pink-600 flex justify-center items-center gap-2 text-sm"
+                      className="w-full bg-pink-400 hover:bg-pink-500 active:scale-95 text-white font-black py-4 rounded-2xl shadow-md btn-squish mt-4 border-b-4 border-pink-600 flex justify-center items-center gap-2 text-sm"
                     >
                       Registrar Doçura ✨
                     </button>
@@ -1141,7 +1188,7 @@
 
                   <button
                     onClick={() => { playSquishSound('pop'); setIsBagOpen(!isBagOpen); }}
-                    className="absolute top-2 right-2 bg-pink-200 hover:bg-pink-300 text-pink-600 p-2 rounded-full shadow-md hover:scale-105 active:scale-95 transition-all text-xs"
+                    className="absolute top-2 right-2 bg-pink-200 hover:bg-pink-300 text-pink-600 p-2 rounded-full shadow-md hover:scale-105 active:scale-95 transition-all text-xs btn-squish"
                   >
                     🎒
                   </button>
@@ -1153,7 +1200,7 @@
                     <button
                       key={tab}
                       onClick={() => { playSquishSound('bubble'); setActiveTab(tab); }}
-                      className={`flex-1 py-2 rounded-xl text-xs font-black capitalize transition-all transform active:scale-90 ${activeTab === tab ? 'bg-pink-300 text-pink-800 shadow-md scale-105' : 'text-pink-400 hover:bg-pink-100'}`}
+                      className={`flex-1 py-2 rounded-xl text-xs font-black capitalize transition-all transform active:scale-90 btn-squish ${activeTab === tab ? 'bg-pink-300 text-pink-800 shadow-md scale-105' : 'text-pink-400 hover:bg-pink-100'}`}
                     >
                       {tab === 'chats' && '💬 Chats'}
                       {tab === 'rank' && '👑 Rank'}
@@ -1176,20 +1223,20 @@
                         />
                         <button
                           onClick={handleSearchUsers}
-                          className="bg-pink-400 text-white px-4 rounded-2xl font-bold text-xs hover:bg-pink-500 transition-colors"
+                          className="bg-pink-400 text-white px-4 rounded-2xl font-bold text-xs hover:bg-pink-500 transition-colors btn-squish"
                         >
                           Buscar
                         </button>
                       </div>
 
                       {searchResults.length > 0 && (
-                        <div className="bg-pink-50 p-2 rounded-2xl border-2 border-pink-200 space-y-2">
+                        <div className="bg-pink-50 p-2 rounded-2xl border-2 border-pink-200 space-y-2 text-xs">
                           <p className="text-[10px] font-bold text-pink-400 uppercase tracking-wider px-1">Resultados</p>
                           {searchResults.map((user) => (
                             <div
                               key={user.id}
                               onClick={() => startOrOpenChat(user)}
-                              className="flex items-center justify-between p-2 hover:bg-white rounded-xl cursor-pointer transition-all border border-transparent hover:border-pink-200"
+                              className="flex items-center justify-between p-2 hover:bg-white rounded-xl cursor-pointer transition-all border border-transparent hover:border-pink-200 btn-squish"
                             >
                               <div className="flex items-center gap-2">
                                 <img src={user.avatar_url || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.nick}`} alt="" className="w-8 h-8 rounded-full bg-white" />
@@ -1207,7 +1254,7 @@
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold text-pink-400 uppercase tracking-wider px-1">Conversas</p>
                         {myChats.length === 0 ? (
-                          <p className="text-center text-xs text-pink-400 py-6">Nenhuma conversa ativa.🍭</p>
+                          <p className="text-center text-xs text-pink-400 py-6 font-bold">Nenhuma conversa ativa.🍭</p>
                         ) : (
                           myChats.map((chat) => {
                             const partner = getChatPartner(chat);
@@ -1215,7 +1262,7 @@
                               <div
                                 key={chat.id}
                                 onClick={() => { playSquishSound('bubble'); setActiveChat(chat); loadChatMessages(chat.id); }}
-                                className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all border-2 ${activeChat?.id === chat.id ? 'bg-pink-100 border-pink-300 shadow-inner' : 'bg-pink-50 border-transparent hover:border-pink-200'}`}
+                                className={`flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all border-2 btn-squish ${activeChat?.id === chat.id ? 'bg-pink-100 border-pink-300 shadow-inner' : 'bg-pink-50 border-transparent hover:border-pink-200'}`}
                               >
                                 <div className="flex items-center gap-3">
                                   <div className="relative">
@@ -1240,7 +1287,7 @@
                   )}
 
                   {activeTab === 'rank' && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-xs">
                       <p className="text-center text-xs font-bold text-pink-500 mb-2">🏆 TOP 10 GLOBAL DE PODER 🏆</p>
                       {allProfiles
                         .sort((a, b) => (b.power || 0) - (a.power || 0))
@@ -1281,7 +1328,7 @@
                           <p className="text-[10px] text-pink-400">Edita 1 mensagem do teu amigo.</p>
                           <span className="text-[11px] font-black text-pink-500 font-mono">500 🌸</span>
                         </div>
-                        <button onClick={() => buyStoreItem('Troll', 500)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all">Comprar</button>
+                        <button onClick={() => buyStoreItem('Troll', 500)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all btn-squish">Comprar</button>
                       </div>
 
                       <div className="bg-white p-3 rounded-2xl border-2 border-pink-200 flex items-center justify-between">
@@ -1290,7 +1337,7 @@
                           <p className="text-[10px] text-pink-400">Dá +1 de poder a um amigo teu.</p>
                           <span className="text-[11px] font-black text-pink-500 font-mono">1.000 🌸</span>
                         </div>
-                        <button onClick={() => buyStoreItem('Poder', 1000)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all">Comprar</button>
+                        <button onClick={() => buyStoreItem('Poder', 1000)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all btn-squish">Comprar</button>
                       </div>
 
                       <div className="bg-white p-3 rounded-2xl border-2 border-pink-200 flex items-center justify-between">
@@ -1299,7 +1346,7 @@
                           <p className="text-[10px] text-pink-400">Muda a tua alcunha instantaneamente.</p>
                           <span className="text-[11px] font-black text-pink-500 font-mono">2.000 🌸</span>
                         </div>
-                        <button onClick={() => buyStoreItem('Troca de Nick', 2000)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all">Comprar</button>
+                        <button onClick={() => buyStoreItem('Troca de Nick', 2000)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-xs px-3 py-1.5 rounded-xl active:scale-95 transition-all btn-squish">Comprar</button>
                       </div>
                     </div>
                   )}
@@ -1332,8 +1379,8 @@
                         />
                       </div>
 
-                      <button onClick={updateProfileSettings} className="w-full bg-pink-400 hover:bg-pink-500 text-white font-bold py-3 rounded-xl shadow-md transition-all text-xs">Salvar Definições ✨</button>
-                      <button onClick={handleLogout} className="w-full bg-red-100 hover:bg-red-200 text-red-600 font-bold py-3 rounded-xl transition-all text-xs mt-4">Terminar Sessão 👋</button>
+                      <button onClick={updateProfileSettings} className="w-full bg-pink-400 hover:bg-pink-500 text-white font-bold py-3 rounded-xl shadow-md transition-all text-xs btn-squish">Salvar Definições ✨</button>
+                      <button onClick={handleLogout} className="w-full bg-red-100 hover:bg-red-200 text-red-600 font-bold py-3 rounded-xl transition-all text-xs mt-4 btn-squish">Terminar Sessão 👋</button>
                     </div>
                   )}
                 </div>
@@ -1352,17 +1399,17 @@
                             <span className="text-[10px] text-pink-400 font-mono">#{getChatPartner(activeChat).tag}</span>
                           </h3>
                           <p className="text-[10px] text-pink-500 font-mono">
-                            {getChatPartner(activeChat).is_online ? <span className="text-green-500 font-bold">Online</span> : <span>Visto em: {new Date(getChatPartner(activeChat).last_seen || Date.now()).toLocaleDateString('pt-PT')}</span>}
+                            {getChatPartner(activeChat).is_online ? <span className="text-green-500 font-bold font-sans">Online</span> : <span>Visto em: {new Date(getChatPartner(activeChat).last_seen || Date.now()).toLocaleDateString('pt-PT')}</span>}
                           </p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <button onClick={() => toggleBlockUser(getChatPartner(activeChat).id)} className="text-xs font-bold bg-pink-200 hover:bg-pink-300 text-pink-700 px-3 py-1.5 rounded-xl transition-all">
+                        <button onClick={() => toggleBlockUser(getChatPartner(activeChat).id)} className="text-xs font-bold bg-pink-200 hover:bg-pink-300 text-pink-700 px-3 py-1.5 rounded-xl transition-all btn-squish">
                           {blocksList.includes(getChatPartner(activeChat).id) ? "Desbloquear" : "Bloquear"}
                         </button>
-                        <button onClick={clearCurrentChat} className="text-xs font-bold bg-pink-200 hover:bg-pink-300 text-pink-700 px-3 py-1.5 rounded-xl transition-all">🧹</button>
-                        <button onClick={deleteCurrentChat} className="text-xs font-bold bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-xl transition-all">🗑️</button>
+                        <button onClick={clearCurrentChat} className="text-xs font-bold bg-pink-200 hover:bg-pink-300 text-pink-700 px-3 py-1.5 rounded-xl transition-all btn-squish">🧹</button>
+                        <button onClick={deleteCurrentChat} className="text-xs font-bold bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded-xl transition-all btn-squish">🗑️</button>
                       </div>
                     </div>
 
@@ -1406,13 +1453,13 @@
                         </div>
                       )}
 
-                      <button type="button" onClick={() => fileInputRef.current.click()} className="p-2.5 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-full hover:scale-105 active:scale-95 transition-all text-sm">📷</button>
+                      <button type="button" onClick={() => fileInputRef.current.click()} className="p-2.5 bg-pink-100 hover:bg-pink-200 text-pink-600 rounded-full hover:scale-105 active:scale-95 transition-all text-sm btn-squish">📷</button>
                       <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
 
-                      <button type="button" onClick={toggleRecording} className={`p-2.5 rounded-full hover:scale-105 active:scale-95 transition-all text-sm ${isRecording ? 'bg-red-400 text-white animate-pulse' : 'bg-pink-100 text-pink-600 hover:bg-pink-200'}`}>🎙️</button>
+                      <button type="button" onClick={toggleRecording} className={`p-2.5 rounded-full hover:scale-105 active:scale-95 transition-all text-sm ${isRecording ? 'bg-red-400 text-white animate-pulse' : 'bg-pink-100 text-pink-600 hover:bg-pink-200'} btn-squish`}>🎙️</button>
 
                       <input type="text" value={messageInput} onChange={handleTyping} placeholder="Escreve uma mensagem doce..." className="flex-1 px-4 py-3 bg-pink-50 border-2 border-pink-200 rounded-2xl focus:outline-none focus:border-pink-400 transition-colors text-xs font-semibold shadow-inner" />
-                      <button type="submit" className="bg-pink-400 hover:bg-pink-500 active:scale-95 text-white font-black px-5 py-3 rounded-2xl shadow-md transition-all border-b-4 border-pink-600 text-xs">Enviar 🍬</button>
+                      <button type="submit" className="bg-pink-400 hover:bg-pink-500 active:scale-95 text-white font-black px-5 py-3 rounded-2xl shadow-md border-b-4 border-pink-600 text-xs btn-squish">Enviar 🍬</button>
                     </form>
                   </>
                 ) : (
@@ -1442,12 +1489,12 @@
                           <p className="font-extrabold text-xs text-pink-700">{item.name}</p>
                           <p className="text-[10px] text-pink-400">{item.desc}</p>
                         </div>
-                        <button onClick={() => useInventoryItem(item.name)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all active:scale-95">Usar</button>
+                        <button onClick={() => useInventoryItem(item.name)} className="bg-pink-400 hover:bg-pink-500 text-white font-bold text-[10px] px-3 py-1.5 rounded-xl transition-all active:scale-95 btn-squish">Usar</button>
                       </div>
                     ))
                   )}
                 </div>
-                <button onClick={() => { playSquishSound('pop'); setIsBagOpen(false); }} className="mt-6 w-full bg-pink-200 hover:bg-pink-300 text-pink-700 font-extrabold py-3 rounded-2xl text-xs transition-colors">Fechar Mochila</button>
+                <button onClick={() => { playSquishSound('pop'); setIsBagOpen(false); }} className="mt-6 w-full bg-pink-200 hover:bg-pink-300 text-pink-700 font-extrabold py-3 rounded-2xl text-xs transition-colors btn-squish">Fechar Mochila</button>
               </div>
             </div>
           )}
